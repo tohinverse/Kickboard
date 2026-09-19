@@ -37,14 +37,3 @@ export function EmptyState({ title, hint }: { title: string; hint?: string }) {
     </div>
   );
 }
-
-export function formatKickoff(iso: string | null): string {
-  if (!iso) return "TBC";
-  return new Date(iso).toLocaleString(undefined, {
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    day: "numeric",
-    month: "short",
-  });
-}

@@ -1,5 +1,6 @@
 import type { PublicMatch } from "@/lib/public-data";
-import { StatusBadge, formatKickoff } from "@/components/ui";
+import { StatusBadge } from "@/components/ui";
+import { Kickoff } from "@/components/Kickoff";
 
 export function MatchRow({ match, showStage = false }: { match: PublicMatch; showStage?: boolean }) {
   const decided = match.homeScore !== null && match.awayScore !== null;
@@ -29,7 +30,11 @@ export function MatchRow({ match, showStage = false }: { match: PublicMatch; sho
           <StatusBadge status={match.status} />
           {showStage && <span>{match.groupName ?? match.stageName}</span>}
           {match.venue && <span>· {match.venue}</span>}
-          {match.scheduledAt && <span>· {formatKickoff(match.scheduledAt)}</span>}
+          {match.scheduledAt && (
+            <span>
+              · <Kickoff iso={match.scheduledAt} />
+            </span>
+          )}
         </div>
       </div>
     </li>
