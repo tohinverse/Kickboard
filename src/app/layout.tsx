@@ -21,7 +21,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-slate-50 text-slate-900">
+      {/*
+        Browser extensions (password managers, ad blockers, Grammarly) commonly
+        stamp attributes onto <body> before React hydrates, which React reports
+        as a mismatch even though the server markup is correct. This suppresses
+        the warning for this element's own attributes only — mismatches in the
+        tree below are still reported.
+      */}
+      <body
+        suppressHydrationWarning
+        className="flex min-h-full flex-col bg-slate-50 text-slate-900"
+      >
         <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
             <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
