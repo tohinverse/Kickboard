@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tournament {
+  id        String   @id @default(cuid())
+  name      String
+  status    String   @default("draft") // draft | active | completed
+  stages    Stage[]
+  teams     Team[]
+  createdAt DateTime @default(now())
+}
+
+model Stage {
+  id           String     @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  name         String
+  type         String // "LEAGUE" | "KNOCKOUT" | "GROUPS"
+  order        Int
+  config       Json
+  groups       Group[]
+  matches      Match[]
+
+  @@index([tournamentId])
+}
+
+model Group {
+  id      String  @id @default(cuid())
+  stageId String
+  stage   Stage   @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  name    String
+  teams   Team[]
+  matches Match[]
+
+  @@index([stageId])
+}
+
+model Team {
+  id           String     @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  name         String
+  groupId      String?
+  group        Group?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  seed         Int?
+  homeMatches  Match[]    @relation("home")
+  awayMatches  Match[]    @relation("away")
+
+  @@index([tournamentId])
+  @@index([groupId])
+}
+
+model Match {
+  id          String    @id @default(cuid())
+  stageId     String
+  stage       Stage     @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  groupId     String?
+  group       Group?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  round       Int
+  slot        Int       @default(0)
+  homeTeamId  String?
+  homeTeam    Team?     @relation("home", fields: [homeTeamId], references: [id], onDelete: SetNull)
+  awayTeamId  String?
+  awayTeam    Team?     @relation("away", fields: [awayTeamId], references: [id], onDelete: SetNull)
+  homeScore   Int?
+  awayScore   Int?
+  status      String    @default("scheduled") // scheduled | live | finished
+  scheduledAt DateTime?
+  venue       String?
+  nextMatchId String?
+  nextSlot    Int?
+
+  @@index([stageId])
+  @@index([groupId])
+}
