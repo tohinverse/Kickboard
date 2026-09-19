@@ -1,0 +1,62 @@
+# Production-style stack: builds the standalone runner image and serves it the
+# way Vercel would, so you can sanity-check a real build locally.
+#
+#   docker compose -f compose.prod.yaml up --build
+#
+# This is a COMPLETE stack, not an overlay on compose.yaml. Compose merges
+# volume lists rather than replacing them, so an overlay could not drop the dev
+# bind mount — and that mount would shadow the built app inside the image.
+
+name: kickboard-prod
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kickboard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kickboard}
+      POSTGRES_DB: ${POSTGRES_DB:-kickboard}
+    ports:
+      - "${PROD_DB_PORT:-5433}:5432"
+    volumes:
+      - prod-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kickboard} -d ${POSTGRES_DB:-kickboard}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kickboard}:${POSTGRES_PASSWORD:-kickboard}@db:5432/${POSTGRES_DB:-kickboard}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["npx", "prisma", "migrate", "deploy"]
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kickboard}:${POSTGRES_PASSWORD:-kickboard}@db:5432/${POSTGRES_DB:-kickboard}?schema=public
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-local-dev-password}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:-local-dev-secret-change-in-production}
+    ports:
+      - "${PROD_APP_PORT:-3001}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  prod-db-data:

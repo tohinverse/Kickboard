@@ -6,6 +6,23 @@ let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { console.log("FAIL:", m); fail++; } else console.log("  ok:", m); };
 
 async function main() {
+  // This suite wipes every table, so it must never be pointed at a database
+  // holding data you care about. Set ALLOW_DESTRUCTIVE_TEST=1 to override.
+  if (process.env.ALLOW_DESTRUCTIVE_TEST !== "1") {
+    const existing = await prisma.tournament.count();
+    const seeded = await prisma.tournament.count({
+      where: { name: { in: ["Kickboard Cup", "League Test"] } },
+    });
+    if (existing > seeded) {
+      console.error(
+        `Refusing to run: the database holds ${existing} tournament(s) this suite would delete.\n` +
+          `Point DATABASE_URL at a scratch database, or re-run with ALLOW_DESTRUCTIVE_TEST=1.`,
+      );
+      await prisma.$disconnect();
+      process.exit(1);
+    }
+  }
+
   await prisma.match.deleteMany({});
   await prisma.team.deleteMany({});
   await prisma.group.deleteMany({});

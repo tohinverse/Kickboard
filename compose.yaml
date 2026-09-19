@@ -1,0 +1,69 @@
+name: kickboard
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kickboard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kickboard}
+      POSTGRES_DB: ${POSTGRES_DB:-kickboard}
+    ports:
+      # Exposed so you can attach psql or a GUI from the host. Override
+      # DB_PORT in .env if 5432 is already taken on your machine.
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # The app must not start before Postgres is accepting connections.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kickboard} -d ${POSTGRES_DB:-kickboard}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Runs `prisma migrate deploy` once, then exits. The app waits for it to
+  # finish, so the schema is always current before the server boots.
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kickboard}:${POSTGRES_PASSWORD:-kickboard}@db:5432/${POSTGRES_DB:-kickboard}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    # Bind-mounted so migrations you create on the host are picked up without
+    # a rebuild; node_modules stays in the image.
+    volumes:
+      - ./prisma:/app/prisma
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: dev
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kickboard}:${POSTGRES_PASSWORD:-kickboard}@db:5432/${POSTGRES_DB:-kickboard}?schema=public
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-local-dev-password}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:-local-dev-secret-change-in-production}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      # Source is bind-mounted for hot reload; node_modules and .next stay in
+      # named volumes so the container's Linux builds are never clobbered by
+      # the host's macOS ones.
+      - .:/app
+      - node_modules:/app/node_modules
+      - next-cache:/app/.next
+
+volumes:
+  db-data:
+  node_modules:
+  next-cache:

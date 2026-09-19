@@ -8,21 +8,72 @@ without logging in.
 
 Next.js (App Router) · TypeScript · Postgres + Prisma · Tailwind · SWR polling
 
-## Local development
+## Quick start (Docker)
+
+Docker Desktop is the only prerequisite — no local Node or Postgres needed.
+
+```bash
+cp .env.example .env
+./scripts/dev.sh up
+```
+
+That builds the image, starts Postgres, applies migrations, and serves the app
+at <http://localhost:3000>. Load some demo tournaments to click through:
+
+```bash
+./scripts/dev.sh seed
+```
+
+Sign in at `/admin` with the `ADMIN_PASSWORD` from your `.env`
+(`local-dev-password` by default).
+
+### Everyday commands
+
+| Command | What it does |
+| --- | --- |
+| `./scripts/dev.sh up` | Start the stack (builds on first run) |
+| `./scripts/dev.sh down` | Stop it, keeping the database |
+| `./scripts/dev.sh logs` | Follow the app logs |
+| `./scripts/dev.sh shell` | Shell into the app container |
+| `./scripts/dev.sh psql` | `psql` against the dev database |
+| `./scripts/dev.sh migrate` | Create a new migration (prompts for a name) |
+| `./scripts/dev.sh seed` | Load demo tournaments |
+| `./scripts/dev.sh test` | Run the test suite — **wipes the dev database** |
+| `./scripts/dev.sh prod` | Run the production image locally on port 3001 |
+| `./scripts/dev.sh reset` | Destroy everything, database included |
+
+Source is bind-mounted, so edits on the host hot-reload in the container
+(about two seconds). `node_modules` and `.next` live in named volumes, so the
+container's Linux builds never collide with the host's macOS ones — which also
+means **adding a dependency needs a rebuild**:
+
+```bash
+docker compose up -d --build
+```
+
+Database contents survive `down`/`up` in the `db-data` volume. Only `reset`
+removes them.
+
+### Checking a production build
+
+```bash
+./scripts/dev.sh prod        # http://localhost:3001
+./scripts/dev.sh prod-down
+```
+
+This builds the standalone runner image (339MB vs 630MB for dev), runs as a
+non-root user, and uses its own database on port 5433 — so it never touches
+your dev data. It is the closest local equivalent to what Vercel serves.
+
+## Running without Docker
+
+Node 22+ and a local Postgres are required.
 
 ```bash
 npm install
-cp .env.example .env        # fill in DATABASE_URL and ADMIN_PASSWORD
-npx prisma migrate dev      # create the schema
+cp .env.example .env         # uncomment the localhost DATABASE_URL line
+npx prisma migrate dev
 npm run dev
-```
-
-A throwaway Postgres for local work:
-
-```bash
-docker run -d --name kickboard-pg \
-  -e POSTGRES_USER=kickboard -e POSTGRES_PASSWORD=kickboard -e POSTGRES_DB=kickboard \
-  -p 5432:5432 postgres:16-alpine
 ```
 
 ## Environment variables
@@ -37,11 +88,21 @@ docker run -d --name kickboard-pg \
 ## Tests
 
 ```bash
-npm run test           # format algorithms + engine against a real database
-npm run test:formats   # pure scheduling/standings logic, no database
-npm run test:engine    # 32-team groups → knockout run against Postgres
-npm run test:http      # API-level checks against a running server
+./scripts/dev.sh test       # inside Docker (wipes the dev database)
 ```
+
+Or directly:
+
+| Command | Scope |
+| --- | --- |
+| `npm run test:formats` | Scheduling and standings logic, no database |
+| `npm run test:engine` | 32-team groups → knockout run against Postgres |
+| `npm run test:http` | API-level checks against a running server |
+
+`test:engine` truncates every table, so it refuses to run against a database
+holding unrelated data. Point `DATABASE_URL` at a scratch database, or set
+`ALLOW_DESTRUCTIVE_TEST=1` to override. On the host use
+`npm run test:engine:host`, which loads `.env` first.
 
 ## Formats
 

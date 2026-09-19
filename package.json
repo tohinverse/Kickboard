@@ -11,9 +11,10 @@
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
     "postinstall": "prisma generate",
-    "test:engine": "tsx --env-file=.env scripts/verify-engine.ts",
+    "test:engine": "tsx scripts/verify-engine.ts",
     "test": "npm run test:formats && npm run test:engine",
-    "test:http": "node scripts/verify-http.mjs"
+    "test:http": "node scripts/verify-http.mjs",
+    "test:engine:host": "tsx --env-file=.env scripts/verify-engine.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
