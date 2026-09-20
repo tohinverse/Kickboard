@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import Link from "next/link";
 
 export function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -35,5 +36,59 @@ export function EmptyState({ title, hint }: { title: string; hint?: string }) {
       <p className="font-medium text-slate-700">{title}</p>
       {hint && <p className="mt-1 text-sm text-slate-500">{hint}</p>}
     </div>
+  );
+}
+
+export function Container({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`mx-auto w-full max-w-6xl px-4 ${className}`}>{children}</div>;
+}
+
+type ButtonVariant = "primary" | "secondary" | "ghost" | "unstyled";
+
+const buttonVariants: Record<ButtonVariant, string> = {
+  primary: "bg-slate-900 text-white hover:bg-slate-700 focus-visible:outline-slate-900",
+  secondary:
+    "bg-white text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus-visible:outline-slate-900",
+  ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-slate-900",
+  /* Unstyled: the caller supplies the colour. CtaButton uses this to apply the
+     marketing accent without the slate classes needing to be overridden. */
+  unstyled: "",
+};
+
+/*
+  The shared button primitive for both surfaces. Deliberately accent free: the
+  marketing green lives in CtaButton alone, so this file carries no marketing
+  specific colour. Renders a Link when href is given, otherwise a button.
+*/
+export function Button({
+  children,
+  href,
+  variant = "primary",
+  className = "",
+  ...rest
+}: {
+  children: ReactNode;
+  href?: string;
+  variant?: ButtonVariant;
+  className?: string;
+} & Omit<ComponentPropsWithoutRef<"button">, "className" | "children">) {
+  const { "aria-label": ariaLabel, ...buttonProps } = rest as { "aria-label"?: string } & typeof rest;
+  const classes =
+    "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition " +
+    "focus-visible:outline-2 focus-visible:outline-offset-2 " +
+    `disabled:cursor-not-allowed disabled:opacity-60 ${buttonVariants[variant]} ${className}`;
+
+  if (href) {
+    return (
+      <Link href={href} className={classes} aria-label={ariaLabel}>
+        {children}
+      </Link>
+    );
+  }
+
+  return (
+    <button className={classes} aria-label={ariaLabel} {...buttonProps}>
+      {children}
+    </button>
   );
 }

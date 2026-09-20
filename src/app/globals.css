@@ -3,6 +3,18 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Marketing accent. Green is the one energetic colour the app has not spent
+     on a match state (red is live, sky is scheduled), so it cannot be misread
+     as one. Lightness is tuned so white text on it clears 4.5:1 — measured
+     5.01:1 for the accent and 6.65:1 for the hover step. Referenced only
+     through these tokens, never as a literal colour class. */
+  --color-accent: oklch(0.52 0.15 155);
+  --color-accent-hover: oklch(0.45 0.15 155);
+
+  /* Vertical rhythm between marketing sections. */
+  --spacing-section: 5rem;
+  --spacing-section-lg: 7rem;
 }
 
 html {

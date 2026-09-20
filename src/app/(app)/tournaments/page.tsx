@@ -4,7 +4,7 @@ import { Card, EmptyState } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function TournamentsPage() {
   const tournaments = await prisma.tournament.findMany({
     where: { status: { in: ["active", "completed"] } },
     orderBy: { createdAt: "desc" },
