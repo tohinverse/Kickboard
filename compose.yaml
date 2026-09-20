@@ -63,7 +63,30 @@ services:
       - node_modules:/app/node_modules
       - next-cache:/app/.next
 
+  # Web GUI for the database at http://localhost:${PGADMIN_PORT:-5050}. The
+  # Kickboard server is pre-registered via servers.json, so it is already in
+  # the tree on first login — expand it and enter POSTGRES_PASSWORD once.
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@kickboard.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-kickboard}
+      # This is a local dev tool on a private port; skip the master password
+      # prompt that otherwise sits in front of every saved connection.
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+
 volumes:
   db-data:
   node_modules:
   next-cache:
+  pgadmin-data:

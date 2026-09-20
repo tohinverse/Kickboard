@@ -6,6 +6,7 @@
 #   ./scripts/dev.sh logs      follow the app logs
 #   ./scripts/dev.sh shell     open a shell in the app container
 #   ./scripts/dev.sh psql      open psql against the dev database
+#   ./scripts/dev.sh gui       open the pgAdmin database GUI in a browser
 #   ./scripts/dev.sh migrate   create a new migration (prompts for a name)
 #   ./scripts/dev.sh seed      load demo tournaments
 #   ./scripts/dev.sh test      run the test suite (WIPES the dev database)
@@ -25,6 +26,7 @@ fi
 # shellcheck disable=SC1091
 set -a; . ./.env; set +a
 APP_PORT="${APP_PORT:-3000}"
+PGADMIN_PORT="${PGADMIN_PORT:-5050}"
 
 dc() { docker compose "$@"; }
 
@@ -34,6 +36,9 @@ case "${1:-up}" in
     echo
     echo "Kickboard is starting at http://localhost:${APP_PORT}"
     echo "Admin password: ${ADMIN_PASSWORD:-local-dev-password}"
+    echo
+    echo "Database GUI (pgAdmin) at http://localhost:${PGADMIN_PORT}"
+    echo "  sign in: ${PGADMIN_EMAIL:-admin@kickboard.dev} / ${PGADMIN_PASSWORD:-kickboard}"
     echo
     echo "Follow the logs with:  ./scripts/dev.sh logs"
     ;;
@@ -51,6 +56,15 @@ case "${1:-up}" in
   logs)    dc logs -f "${2:-app}" ;;
   shell)   dc exec app sh ;;
   psql)    dc exec db psql -U "${POSTGRES_USER:-kickboard}" -d "${POSTGRES_DB:-kickboard}" ;;
+  gui)
+    dc up -d pgadmin
+    url="http://localhost:${PGADMIN_PORT}"
+    echo "pgAdmin: $url"
+    echo "  sign in: ${PGADMIN_EMAIL:-admin@kickboard.dev} / ${PGADMIN_PASSWORD:-kickboard}"
+    echo "  then expand 'Kickboard (dev)' and enter the database password:"
+    echo "  ${POSTGRES_PASSWORD:-kickboard}"
+    command -v open >/dev/null 2>&1 && open "$url"
+    ;;
   migrate)
     read -r -p "Migration name (e.g. add_match_venue): " name
     [ -n "$name" ] || { echo "A name is required." >&2; exit 1; }
